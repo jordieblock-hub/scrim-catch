@@ -1137,9 +1137,10 @@ function catchScrim(e){
   catchFlash.style.opacity='1';
   setTimeout(()=>{catchFlash.style.opacity='0';},200);
   if(score>=10){winGame();return;}
-  speed+=0.38;timerDrain+=1.4;  // aggressive ramp
-  // Scrim shrinks every 2 catches, down to min 44px
-  scrimSize=Math.max(44, 84 - Math.floor(score/2)*5);
+  speed=Math.min(speed+0.38, 5.5);       // cap at 5.5
+  timerDrain=Math.min(timerDrain+1.4, 22); // cap drain
+  // Scrim shrinks every 2 catches, min 58px — still tappable
+  scrimSize=Math.max(58, 84 - Math.floor(score/2)*5);
   scrimEl.style.width=scrimSize+'px'; scrimEl.style.height=(scrimSize*0.88)+'px';
   moveDir=Math.random()>0.5?1:-1;
   placeScrim();spawnPuddles();resetTimer();
