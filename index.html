@@ -874,17 +874,19 @@ const decoyMsgs=["WRONG DOG! That's not Scrim!","That mutt fooled you!","Decoy! 
 const puddleMsgs=["Scrim hit a puddle — BURST!","Puddle speed boost!","Splash! He's zooming now!"];
 function pick(a){return a[Math.floor(Math.random()*a.length)];}
 
-// Game state — EASIER values
+// Game state — HARDER
 let score=0,lives=3,gameActive=false;
 let scrimX=0,scrimY=0,moveDir=1;
-let speed=1.6,          // was 2.0 — slower start
+let speed=2.6,         // faster start
     timerVal=100,
-    timerDrain=8.5;     // was 11 — more time per round
+    timerDrain=14;     // drains much faster
 let timerInterval=null,moveInterval=null,legPhase=0,tailPhase=0,decoyLegPhase=0;
-let carX=-200,carDir=1,carSpeed=2.2,carActive=false; // car slightly slower
-let decoyX=0,decoyY=0,decoyDir=-1,decoyActive=false,decoySpeed=2.0;
+let carX=-200,carDir=1,carSpeed=3.5,carActive=false;
+let decoyX=0,decoyY=0,decoyDir=-1,decoyActive=false,decoySpeed=3.0;
 let jazzX=0,jazzY=0,jazzDir=1,jazzActive=false;
 let puddles=[],pudding=false,beadInterval=null;
+let scrimSize=84;
+let dirChangeInterval=null;
 
 const gw=document.getElementById('game-wrap');
 const scrimEl=document.getElementById('scrim');
@@ -942,7 +944,7 @@ function animDecoyLegs(){
 function startCar(){
   carDir=Math.random()>0.5?1:-1;
   carX=carDir>0?-200:wrapW()+10;
-  carSpeed=2.2+score*0.08; // gentler ramp
+  carSpeed=3.5+score*0.18; // aggressive ramp
   carEl.style.display='block'; carActive=true;
 }
 function updateCar(){
@@ -958,8 +960,7 @@ function updateCar(){
   if(carX>wrapW()+230||carX<-230){
     carActive=false; carEl.style.display='none';
     scrimEl.style.opacity='1'; scrimEl.style.pointerEvents='auto';
-    // LONGER gap between cars — easier
-    setTimeout(()=>{if(gameActive)startCar();},4000+Math.random()*5000);
+    setTimeout(()=>{if(gameActive)startCar();},1500+Math.random()*2500);
   }
 }
 function spawnDecoy(){
@@ -967,7 +968,7 @@ function spawnDecoy(){
   decoyDir=Math.random()>0.5?1:-1;
   decoyX=decoyDir>0?-82:wrapW()+10;
   decoyY=trackY()+4;
-  decoySpeed=2.0+score*0.08;
+  decoySpeed=3.0+score*0.12;
   decoyEl.style.display='block'; decoyActive=true;
 }
 function updateDecoy(){
@@ -978,8 +979,8 @@ function updateDecoy(){
   animDecoyLegs();
   if(decoyX>wrapW()+115||decoyX<-115){
     decoyActive=false; decoyEl.style.display='none';
-    // LONGER gap — easier
-    setTimeout(()=>{if(gameActive)spawnDecoy();},7000+Math.random()*7000);
+    // shorter gap — harder
+    setTimeout(()=>{if(gameActive)spawnDecoy();},2500+Math.random()*3000);
   }
 }
 function spawnJazz(){
@@ -991,12 +992,12 @@ function spawnJazz(){
 }
 function updateJazz(){
   if(!jazzActive)return;
-  jazzX+=0.75*jazzDir;
+  jazzX+=1.4*jazzDir; // faster walk
   jazzEl.style.left=jazzX+'px'; jazzEl.style.top=jazzY+'px';
   jazzEl.style.transform=jazzDir<0?'scaleX(-1)':'scaleX(1)';
   if(jazzX>wrapW()+85||jazzX<-85){
     jazzActive=false; jazzEl.style.display='none';
-    setTimeout(()=>{if(gameActive)spawnJazz();},10000+Math.random()*10000);
+    setTimeout(()=>{if(gameActive)spawnJazz();},4000+Math.random()*5000);
   }
 }
 function spawnPuddles(){
@@ -1094,25 +1095,34 @@ function resetTimer(){
 }
 function startGame(){
   score=0;lives=3;gameActive=true;
-  speed=1.6;timerDrain=8.5;moveDir=1;
+  speed=2.6;timerDrain=14;moveDir=1;scrimSize=84;
   pudding=false;carActive=false;decoyActive=false;jazzActive=false;
   scoreEl.textContent='0';
   ['life1','life2','life3'].forEach(id=>document.getElementById(id).classList.remove('lost'));
   ['start-screen','win-screen','lose-screen'].forEach(id=>{document.getElementById(id).style.display='none';});
   carEl.style.display='none'; decoyEl.style.display='none'; jazzEl.style.display='none';
   scrimEl.style.opacity='1'; scrimEl.style.pointerEvents='auto';
+  scrimEl.style.width=scrimSize+'px'; scrimEl.style.height=(scrimSize*0.88)+'px';
   document.querySelectorAll('.puddle').forEach(p=>p.remove());
-  clearInterval(beadInterval);
+  clearInterval(beadInterval); clearInterval(dirChangeInterval);
   tapHint.style.opacity='1';
-  setTimeout(()=>{tapHint.style.opacity='0';},4000);
+  setTimeout(()=>{tapHint.style.opacity='0';},3000);
   placeScrim(); spawnPuddles();
   scrimEl.style.display='block';
   resetTimer(); startMove();
-  // Challenges start LATER — easier
-  setTimeout(()=>{if(gameActive)startCar();},3000);       // was 2000
-  setTimeout(()=>{if(gameActive)spawnDecoy();},7000);      // was 4500
-  setTimeout(()=>{if(gameActive)spawnJazz();},12000);      // was 7500
-  beadInterval=setInterval(()=>{if(gameActive)dropBead();},4500); // was 3000
+  // Challenges start SOONER — harder
+  setTimeout(()=>{if(gameActive)startCar();},1500);
+  setTimeout(()=>{if(gameActive)spawnDecoy();},3000);
+  setTimeout(()=>{if(gameActive)spawnJazz();},5000);
+  beadInterval=setInterval(()=>{if(gameActive)dropBead();},2200);
+  // Random mid-run direction flip every 2-4s
+  dirChangeInterval=setInterval(()=>{
+    if(!gameActive)return;
+    if(Math.random()<0.55){ // 55% chance each tick
+      moveDir*=-1;
+      placeScrim();
+    }
+  },2500+Math.random()*1500);
 }
 function catchScrim(e){
   if(!gameActive)return;
@@ -1127,7 +1137,10 @@ function catchScrim(e){
   catchFlash.style.opacity='1';
   setTimeout(()=>{catchFlash.style.opacity='0';},200);
   if(score>=10){winGame();return;}
-  speed+=0.22;timerDrain+=0.9;   // gentler ramp — easier
+  speed+=0.38;timerDrain+=1.4;  // aggressive ramp
+  // Scrim shrinks every 2 catches, down to min 44px
+  scrimSize=Math.max(44, 84 - Math.floor(score/2)*5);
+  scrimEl.style.width=scrimSize+'px'; scrimEl.style.height=(scrimSize*0.88)+'px';
   moveDir=Math.random()>0.5?1:-1;
   placeScrim();spawnPuddles();resetTimer();
 }
@@ -1154,7 +1167,7 @@ function missScrim(){
 }
 function winGame(){
   gameActive=false;
-  clearInterval(timerInterval);clearInterval(moveInterval);clearInterval(beadInterval);
+  clearInterval(timerInterval);clearInterval(moveInterval);clearInterval(beadInterval);clearInterval(dirChangeInterval);
   [scrimEl,decoyEl,jazzEl,carEl].forEach(el=>{el.style.display='none';});
   let earned=codes[0];
   for(let i=codes.length-1;i>=0;i--){if(score>=codes[i].threshold){earned=codes[i];break;}}
@@ -1165,7 +1178,7 @@ function winGame(){
 }
 function loseGame(){
   gameActive=false;
-  clearInterval(timerInterval);clearInterval(moveInterval);clearInterval(beadInterval);
+  clearInterval(timerInterval);clearInterval(moveInterval);clearInterval(beadInterval);clearInterval(dirChangeInterval);
   [scrimEl,decoyEl,jazzEl,carEl].forEach(el=>{el.style.display='none';});
   document.getElementById('lose-screen').style.display='flex';
 }
